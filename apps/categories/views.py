@@ -1,3 +1,1 @@
-from django.shortcuts import render
-
-# Create your views here.
+"""مالک: مهیار — TODO: CategoryViewSet (CRUD، فقط روی دسته‌های خود کاربر)"""

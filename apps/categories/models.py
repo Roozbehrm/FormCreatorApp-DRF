@@ -1,3 +1,8 @@
-from django.db import models
+"""
+مالک: مهیار
+TODO: Category(TimeStampedModel)
+      owner (FK به User)، title، parent (self FK، nullable — برای درخت دسته‌ها)، color
+      unique_together = ("owner", "title", "parent")
 
-# Create your models here.
+پیش‌نیاز: apps/core/models.py (TimeStampedModel) باید قبلش تمام شده باشد.
+"""
