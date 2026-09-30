@@ -1,0 +1,19 @@
+
+*                    @Rooznehrm
+
+/apps/core/          @Rooznehrm
+/apps/processes/     @Rooznehrm
+/config/             @Rooznehrm
+/docker/ /deploy/    @Rooznehrm
+/.github/            @Rooznehrm
+
+/apps/accounts/      @MahyarDev01 @Rooznehrm
+/apps/categories/    @MahyarDev01 @Rooznehrm
+
+/apps/forms/         @ZahraRahimpour95 @Rooznehrm
+
+/apps/reports/       @hashemiolia1385-tech @Rooznehrm
+
+/apps/reports/consumers.py   @Rooznehrm
+/apps/reports/routing.py     @Rooznehrm
+/apps/api/                   @Rooznehrm

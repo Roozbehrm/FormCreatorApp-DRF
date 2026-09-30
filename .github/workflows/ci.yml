@@ -1,0 +1,51 @@
+name: CI
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install ruff==0.4.7 black==24.4.2   # هم‌نسخه با requirements.txt
+      - run: ruff check .
+      - run: black --check .
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_PASSWORD: postgres, POSTGRES_DB: test_formflow}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      DJANGO_SECRET_KEY: ci-secret
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_formflow
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -r requirements.txt
+      - name: migration check
+        run: python manage.py makemigrations --check --dry-run
+      # آستانه‌ی پوشش ۷۰٪ فقط روی PR به main (release) اجباری است؛ وگرنه در ابتدای پروژه که
+      # کد کم است هر PR قرمز می‌شد. روی بقیه فقط گزارش پوشش چاپ می‌شود.
+      - run: pytest --cov-fail-under=${{ github.base_ref == 'main' && 70 || 0 }}
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/Dockerfile -t formflow:ci .
