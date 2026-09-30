@@ -1,3 +1,4 @@
-from django.contrib import admin
-
-# Register your models here.
+"""
+مالک: روزبه — تسک #39 (feature/39-processes-admin)
+TODO: Process با inline برای ProcessStep؛ ProcessRun/StepCompletion فقط‌خواندنی
+"""

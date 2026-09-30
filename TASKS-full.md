@@ -19,16 +19,17 @@
 
 | نفر | نقش | تعداد | شماره‌ی تسک‌ها |
 |---|---|---|---|
-| روزبه | لید — پایه معماری، فرایندها، زیرساخت | 16 | #2, #3, #4, #5, #6, #7, #8, #9, #10, #19, #20, #26, #27, #28, #33, #35 |
-| مهیار | احراز هویت، دسترسی، دسته‌بندی | 9 | #1, #11, #12, #13, #14, #18, #29, #30, #34 |
-| فائزه | فرم‌ساز (CRUD/API روی پایه‌ی روزبه) | 5 | #15, #16, #17, #25, #31 |
-| علی | گزارش‌گیری (بازدید، کش، زمان‌بندی) | 5 | #21, #22, #23, #24, #32 |
+| روزبه | لید — پایه معماری، فرایندها، زیرساخت | 18 | #1, #2, #3, #4, #5, #6, #7, #8, #9, #10, #19, #20, #26, #27, #28, #33, #35, #39 |
+| مهیار | احراز هویت، دسترسی، دسته‌بندی | 10 | #11, #12, #13, #14, #18, #29, #30, #34, #36, #37 |
+| فائزه | فرم‌ساز (CRUD/API روی پایه‌ی روزبه) | 6 | #15, #16, #17, #25, #31, #38 |
+| علی | گزارش‌گیری (بازدید، کش، زمان‌بندی) | 6 | #21, #22, #23, #24, #32, #40 |
 
 ##  روزبه — لید — پایه معماری، فرایندها، زیرساخت
 
 | # | تسک | اولویت | نوع | برنچ | وابسته به |
 |---|---|---|---|---|---|
-| 2 | راه‌اندازی ریپو، ساختار پوشه‌ها، تنظیمات سه‌لایه، `.env.example`، Docker + docker-compose (dev/prod) + entrypoint | p0 | اجباری | `feature/2-project-setup-docker` | #1 |
+| 1 | مدل‌های اپ accounts: User سفارشی (phone/email/is_verified) + OTPPurpose + OTPRequestLog + migration اولیه — **بلاک‌کننده‌ی کل پروژه** چون `AUTH_USER_MODEL` به آن اشاره دارد. کل `accounts/models.py` | p0 | اجباری | `feature/1-accounts-models` | #3 |
+| 2 | راه‌اندازی ریپو، ساختار پوشه‌ها، تنظیمات سه‌لایه، <bdi dir="ltr"><code>.env.example</code></bdi>، Docker + docker-compose (dev/prod) + entrypoint | p0 | اجباری | `feature/2-project-setup-docker` | #1 |
 | 3 | اپ `core`: مدل‌های پایه (models.py) | p0 | اجباری | `feature/3-core-base-models` | — |
 | 4 | اپ `core`: exception handler، pagination، پرمیشن، کش — **بلاک‌کننده:** `REST_FRAMEWORK` در settings به آن‌ها اشاره می‌کند | p0 | اجباری | `feature/4-core-utils` | — |
 | 5 | زیرساخت مشترک تست (conftest، factory-boy، تأیید آستانه پوشش در CI) | p0 | اجباری | `chore/5-test-infrastructure` | #1 |
@@ -44,23 +45,26 @@
 | 28 | **امتیازی:** GraphQL read-only روی گزارش‌ها | p2 | امتیازی | `feature/28-graphql-reports` | #10 |
 | 33 | export گرفتن PNG از `Documents/ERD.dbml` (نسخه‌ی به‌روز) | p2 | اجباری | `docs/33-erd-export` | #7 #9 #10 |
 | 35 | README نهایی و بازبینی مستندات | p2 | اجباری | `docs/35-final-readme` | — |
+| 39 | ادمین processes: Process با inline برای ProcessStep؛ ProcessRun/StepCompletion فقط‌خواندنی | p2 | اجباری | `feature/39-processes-admin` | #9 |
 
 > تسک‌های `p0` «پایه معماری»اند و باید قبل از اینکه بقیه سراغ CRUD و سرویس‌های خودشان بروند تمام و مرج شوند؛
-> ترتیب دقیق در `Documents/FOUNDATION_PLAN.md`. تسک #1 (مدل User) با اینکه مال مهیار است، از همه مهم‌تر است.
+> ترتیب دقیق در `Documents/FOUNDATION_PLAN.md`. تسک #1 (مدل‌های accounts) و #4 (core utils) از همه مهم‌ترند: پروژه تا این دو مرج نشوند بالا نمی‌آید.
+> کل `apps/accounts/models.py` و migrationهای آن با روزبه است (تا روزبه منتظر مهیار نماند)؛ مهیار بقیه‌ی اپ accounts را بعد از مرج #1 می‌سازد.
 
 ##  مهیار — احراز هویت، دسترسی، دسته‌بندی
 
 | # | تسک | اولویت | نوع | برنچ | وابسته به |
 |---|---|---|---|---|---|
-| 1 | مدل User سفارشی (phone/email/is_verified) + migration اولیه — **بلاک‌کننده‌ی کل پروژه** چون `AUTH_USER_MODEL` به آن اشاره دارد | p0 | اجباری | `feature/1-accounts-user-model` | — |
 | 11 | ثبت‌نام/ورود + JWT (SimpleJWT، rotate، blacklist) | p1 | اجباری | `feature/11-accounts-jwt-auth` | #1 |
-| 12 | سامانه OTP: Redis + TTL + سقف تلاش + throttle + مدل OTPRequestLog | p1 | اجباری | `feature/12-accounts-otp` | #1 #3 |
+| 12 | سامانه OTP: Redis + TTL + سقف تلاش + throttle (روی مدل OTPRequestLog که در #1 ساخته می‌شود) | p1 | اجباری | `feature/12-accounts-otp` | #1 #3 |
 | 13 | ارسال OTP با Celery (ایمیل + قلاب SMS) | p1 | اجباری | `feature/13-accounts-otp-celery` | #12 |
 | 14 | اپ categories: مدل + CRUD + درخت + فیلتر | p1 | اجباری | `feature/14-categories-crud` | #1 #3 |
 | 18 | مکانیزم گذرواژه فرم/فرایند خصوصی (endpoint unlock + توکن موقت) | p1 | اجباری | `feature/18-private-access-password` | #7 #11 |
 | 29 | **امتیازی:** ورود با گوگل (OAuth2) | p2 | امتیازی | `feature/29-google-oauth` | #11 |
 | 30 | امنیت: CORS، throttle، هدرهای امن | p2 | اجباری | `feature/30-security-hardening` | #11 |
 | 34 | Postman collection | p2 | اجباری | `docs/34-postman-collection` | #16 #20 #21 |
+| 36 | ادمین accounts: UserAdmin (با phone/is_verified) + OTPRequestLog فقط‌خواندنی | p2 | اجباری | `feature/36-accounts-admin` | #1 |
+| 37 | ادمین categories: Category (list_display، جستجو) | p2 | اجباری | `feature/37-categories-admin` | #14 |
 
 ##  فائزه — فرم‌ساز (CRUD/API روی پایه‌ی روزبه)
 
@@ -71,6 +75,7 @@
 | 17 | تکمیل قوانین دقیق اعتبارسنجی هر هفت نوع فیلد (روی موتور پایه‌ی #8) | p1 | اجباری | `feature/17-forms-field-validation` | #8 |
 | 25 | مشاهده پاسخ‌های ارسالی + خروجی CSV/Excel | p1 | اجباری | `feature/25-forms-export-csv` | #16 |
 | 31 | تست کامل هر هفت نوع فیلد (happy + edge) | p1 | اجباری | `test/31-forms-field-tests` | #17 |
+| 38 | ادمین forms: Form/Field/Submission (inline برای Field و FieldOption؛ Submission فقط‌خواندنی) | p2 | اجباری | `feature/38-forms-admin` | #7 |
 
 ##  علی — گزارش‌گیری (بازدید، کش، زمان‌بندی)
 
@@ -81,6 +86,7 @@
 | 23 | لایه کش نتایج تجمیع + ابطال با سیگنال ثبت پاسخ (هماهنگ با core/cache.py) | p1 | اجباری | `feature/23-reports-cache` | #4 #10 |
 | 24 | گزارش دوره‌ای: Celery Beat + ایمیل + webhook با HMAC + retry + لاگ ارسال | p1 | اجباری | `feature/24-reports-schedule-celery` | #10 |
 | 32 | تست‌های reports | p1 | اجباری | `test/32-reports-tests` | #21 #22 #23 #24 |
+| 40 | ادمین reports: ReportSchedule/ReportDelivery/VisitCounter (لاگ‌ها فقط‌خواندنی) | p2 | اجباری | `feature/40-reports-admin` | #10 |
 
 ## مسئولیت‌های مستمر (ایشو ندارند)
 
@@ -88,7 +94,8 @@
 - **هر نفر:** endpointهای خودش را با `@extend_schema` مستند کند و حداقل ۷۰٪ پوشش تست برای اپ خودش داشته باشد.
 - **ERD:** `Documents/ERD.dbml` باید با مدل‌ها هماهنگ بماند؛ هر تغییر واقعی مدل در **همان PR** اینجا هم اعمال شود.
   تسک ۳۳ فقط export گرفتن PNG است.
+- **ادمین:** هر اپ `admin.py` خودش را دارد و مالک اپ می‌نویسد (تسک‌های ۳۶ تا ۴۰)؛ هر کدام بعد از مرج مدل‌های همان اپ.
 
-## اتمام
+## اتمام کار
 
 کد + تست + مستندسازی API + بدون خطای ruff/black + migration کامیت‌شده + ریویو شده + مرج در `dev`.

@@ -36,3 +36,7 @@
 ## وابستگی
 خروجی این اپ ورودی processes (روزبه) و reports (روزبه/علی) است.
 ترتیب کامل در `Documents/FOUNDATION_PLAN.md`.
+
+## Django admin و سیگنال‌ها — مالک: فائزه
+- [ ] `admin.py`: Form/Field/Submission در ادمین (inline برای Field و FieldOption) — `feature/38-forms-admin`
+- [ ] `signals.py`: در `apps.py` از قبل import می‌شود (ready)؛ فقط receiver ها را بنویس

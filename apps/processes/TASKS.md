@@ -16,3 +16,6 @@
 - [ ] بعد از تکمیل همه‌ی استپ‌های اجباری، `ProcessRun.status` خودکار `completed` می‌شود و `completed_at` ثبت می‌شود
 - [ ] فرایند خصوصی بدون گذرواژه‌ی درست قابل دسترسی نیست
 - [ ] استپ‌های غیراجباری (`is_required=False`) در محاسبه‌ی تکمیل خودکار شمرده نمی‌شوند
+
+## Django admin — مالک: روزبه
+- [ ] `admin.py`: Process با inline برای ProcessStep — `feature/39-processes-admin`

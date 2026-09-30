@@ -27,3 +27,6 @@
 ## نکته
 سیگنال لازم برای پوش گزارش برخط را در `apps/forms/signals.py` (با هماهنگی فائزه) صدا بزن؛
 پیاده‌سازی خود کانال با روزبه است.
+
+## Django admin — مالک: علی
+- [ ] `admin.py`: ReportSchedule/ReportDelivery/VisitCounter در ادمین (لاگ‌ها فقط‌خواندنی) — `feature/40-reports-admin`
