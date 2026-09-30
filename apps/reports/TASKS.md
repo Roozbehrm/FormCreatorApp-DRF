@@ -1,19 +1,19 @@
 # اپ reports
 
 ## بخش پایه (مالک: روزبه — باید قبل از بخش زیر تمام شود)
-- [ ] `models.py`: VisitCounter/ReportSchedule/ReportDelivery — برنچ `feature/15-reports-aggregation`
-- [ ] `services.py`: aggregate_field/form_report/process_report — برنچ `feature/15-reports-aggregation`
-- [ ] `consumers.py` + `routing.py` (امتیازی، WebSocket) — برنچ `feature/18-reports-realtime-ws`
-- [ ] GraphQL read-only (امتیازی) — برنچ `feature/19-graphql-reports`
+- [ ] `models.py`: VisitCounter/ReportSchedule/ReportDelivery — برنچ `feature/10-reports-aggregation`
+- [ ] `services.py`: aggregate_field/form_report/process_report — برنچ `feature/10-reports-aggregation`
+- [ ] `consumers.py` + `routing.py` (امتیازی، WebSocket) — برنچ `feature/27-reports-realtime-ws`
+- [ ] GraphQL read-only (امتیازی) — برنچ `feature/28-graphql-reports`
 
 ## بخش سرویس/API (مالک: علی — بعد از تمام‌شدن بخش پایه)
-- [ ] endpoint مشاهده گزارش فرم/فرایند روی سرویس‌های آماده — `feature/15-reports-aggregation`
-- [ ] شمارش بازدید با Redis + تسک flush + تعداد پاسخ‌ها — `feature/16-reports-visits-cache`
-- [ ] لایه کش نتایج تجمیع + ابطال با سیگنال ثبت پاسخ (هماهنگ با core/cache.py روزبه) — `feature/16-reports-visits-cache`
-- [ ] گزارش دوره‌ای: Celery Beat + قالب ایمیل + POST به webhook با HMAC و retry — `feature/17-reports-schedule-celery`
-- [ ] لاگ ارسال‌ها (ReportDelivery)
+- [ ] endpoint مشاهده گزارش فرم/فرایند روی سرویس‌های آماده — `feature/21-reports-view-api`
+- [ ] شمارش بازدید با Redis + تسک flush + تعداد پاسخ‌ها — `feature/22-reports-visits`
+- [ ] لایه کش نتایج تجمیع + ابطال با سیگنال ثبت پاسخ (هماهنگ با core/cache.py روزبه) — `feature/23-reports-cache`
+- [ ] گزارش دوره‌ای: Celery Beat + قالب ایمیل + POST به webhook با HMAC و retry — `feature/24-reports-schedule-celery`
+- [ ] لاگ ارسال‌ها (ReportDelivery) — `feature/24-reports-schedule-celery`
 
-## تست — مالک: علی
+## تست — مالک: علی — برنچ `test/32-reports-tests`
 - [ ] تجمیع عددی: میانگین/حداقل/حداکثر/مجموع درست با مقادیر مرزی (صفر، فقط یک پاسخ، بدون پاسخ)
 - [ ] توزیع گزینه‌ها: جمع درصدها تقریباً ۱۰۰ می‌شود؛ گزینه‌ی بدون هیچ انتخابی هم در خروجی با count=0 دیده می‌شود
 - [ ] سری زمانی (Date): گروه‌بندی بر اساس روز درست است

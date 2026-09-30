@@ -1,12 +1,12 @@
 # اپ processes — مالک: روزبه
 
-- [ ] `models.py`: Process/ProcessStep/ProcessRun/StepCompletion — برنچ `feature/12-processes-models`
-- [ ] `services.py`: assert_step_unlocked، complete_step — برنچ `feature/13-processes-linear-engine`
+- [ ] `models.py`: Process/ProcessStep/ProcessRun/StepCompletion — برنچ `feature/9-processes-models`
+- [ ] `services.py`: assert_step_unlocked، complete_step — برنچ `feature/19-processes-linear-engine`
 - [ ] ساخت فرایند از روی فرم‌های ازپیش‌ساخته (فقط فرم‌های همان کاربر)
 - [ ] فرایند خطی: قفل مرحله تا تکمیل پیش‌نیازها (StepLocked → 409)
 - [ ] فرایند آزاد: اجرای مراحل به هر ترتیب
 - [ ] فرایند عمومی/خصوصی با گذرواژه
-- [ ] endpoint وضعیت پیشروی (state) برای پاسخ‌دهنده — برنچ `feature/14-processes-public-api`
+- [ ] endpoint وضعیت پیشروی (state) برای پاسخ‌دهنده — برنچ `feature/20-processes-public-api`
 - [ ] تکمیل خودکار ProcessRun وقتی همه مراحل اجباری انجام شد
 - [ ] دسته‌بندی فرایندها
 ## تست: پرش در فرایند خطی ممنوع، آزاد مجاز، ادامه run با session_key، تکمیل خودکار
