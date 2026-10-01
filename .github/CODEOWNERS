@@ -1,19 +1,19 @@
 
-*                    @Rooznehrm
+*                    @Roozbehrm
 
-/apps/core/          @Rooznehrm
-/apps/processes/     @Rooznehrm
-/config/             @Rooznehrm
-/docker/ /deploy/    @Rooznehrm
-/.github/            @Rooznehrm
+/apps/core/          @Roozbehrm @MahyarDev01
+/apps/processes/     @Roozbehrm @MahyarDev01
+/config/             @Roozbehrm @MahyarDev01
+/docker/ /deploy/    @Roozbehrm @MahyarDev01
+/.github/            @Roozbehrm @MahyarDev01
 
-/apps/accounts/      @MahyarDev01 @Rooznehrm
-/apps/categories/    @MahyarDev01 @Rooznehrm
+/apps/accounts/      @MahyarDev01 @Roozbehrm
+/apps/categories/    @MahyarDev01 @Roozbehrm
 
-/apps/forms/         @ZahraRahimpour95 @Rooznehrm
+/apps/forms/         @ZahraRahimpour95 @Roozbehrm
 
-/apps/reports/       @hashemiolia1385-tech @Rooznehrm
+/apps/reports/       @hashemiolia1385-tech @Roozbehrm
 
-/apps/reports/consumers.py   @Rooznehrm
-/apps/reports/routing.py     @Rooznehrm
-/apps/api/                   @Rooznehrm
+/apps/reports/consumers.py   @Roozbehrm @hashemiolia1385-tech
+/apps/reports/routing.py     @Roozbehrm @hashemiolia1385-tech
+/apps/api/                   @Roozbehrm @MahyarDev01
