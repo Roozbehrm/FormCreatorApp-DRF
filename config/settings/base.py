@@ -39,6 +39,7 @@ THIRD_PARTY_APPS = [
     "allauth.socialaccount.providers.google",
     "dj_rest_auth",
     "dj_rest_auth.registration",
+  
 ]
 
 LOCAL_APPS = [
