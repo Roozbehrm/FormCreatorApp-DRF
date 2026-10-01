@@ -1,4 +1,3 @@
-"""تنظیمات مشترک همه محیط‌ها. مالک: روزبه"""
 from datetime import timedelta
 from pathlib import Path
 

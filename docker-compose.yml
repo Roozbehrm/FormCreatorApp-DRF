@@ -1,4 +1,4 @@
-# محیط توسعه — مالک: روزبه
+
 services:
   db:
     image: postgres:16-alpine
