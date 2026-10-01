@@ -7,5 +7,5 @@ class FormsConfig(AppConfig):
     label = "forms"
 
     def ready(self):
-        from apps.forms.fields import handlers  
-        from apps.forms import signals  
+        from apps.forms import signals  # noqa: F401
+        from apps.forms.fields import handlers  # noqa: F401

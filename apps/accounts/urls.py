@@ -1,5 +1,6 @@
 """مالک: مهیار"""
-from django.urls import path
+
+from django.urls import path  # noqa: F401
 
 app_name = "accounts"
 urlpatterns: list = []

@@ -40,8 +40,6 @@ jobs:
       - run: pip install -r requirements.txt
       - name: migration check
         run: python manage.py makemigrations --check --dry-run
-      # آستانه‌ی پوشش ۷۰٪ فقط روی PR به main (release) اجباری است؛ وگرنه در ابتدای پروژه که
-      # کد کم است هر PR قرمز می‌شد. روی بقیه فقط گزارش پوشش چاپ می‌شود.
       - run: pytest --cov-fail-under=${{ github.base_ref == 'main' && 70 || 0 }}
 
   docker:
