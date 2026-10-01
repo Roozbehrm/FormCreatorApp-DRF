@@ -1,24 +1,13 @@
-## چه چیزی تغییر کرده؟
+Closes #
 
-<!-- خلاصه یک‌خطی -->
+<!-- Number after "#" = number in your branch name (feature/8-... → Closes #8).
+     On merge, the issue closes and the branch is deleted automatically. -->
 
-Closes #   <!-- شماره‌ی ایشو = شماره‌ی توی اسم برنچ (feature/8-... ← Closes #8) -->
+## What changed?
 
-## نوع تغییر
-- [ ] feature
-- [ ] fix
-- [ ] refactor
-- [ ] docs / chore / test
+<!-- 1-2 sentences -->
 
-## چک‌لیست
-- [ ] تست نوشته شده و `pytest` سبز است
-- [ ] endpointها با `@extend_schema` مستند شده‌اند
-- [ ] migration ساخته و کامیت شده (`makemigrations --check` سبز)
-- [ ] متغیر محیطی جدید به `.env.example` اضافه شده
-- [ ] `ruff` و `black` سبز هستند
-- [ ] روی `dev` ریبیس شده و کانفلیکت ندارد
+## Checklist
 
-## نحوه تست دستی
-```bash
-# دستورات
-```
+- [ ] Tests pass
+- [ ] Rebased on latest `dev`
