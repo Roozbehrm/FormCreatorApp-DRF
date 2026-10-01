@@ -39,7 +39,6 @@ THIRD_PARTY_APPS = [
     "allauth.socialaccount.providers.google",
     "dj_rest_auth",
     "dj_rest_auth.registration",
-  
 ]
 
 LOCAL_APPS = [
@@ -156,7 +155,7 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@formflow.local")
 
-REST_AUTH = {"USE_JWT": True, "JWT_AUTH_HTTPONLY": False, "SESSION_LOGIN": False}
+REST_AUTH = {"USE_JWT": True, "JWT_AUTH_HTTPONLY": False, "SESSION_LOGIN": False, "TOKEN_MODEL": None}
 
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
 GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", default="")
