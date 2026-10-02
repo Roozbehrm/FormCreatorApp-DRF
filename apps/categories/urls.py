@@ -1,4 +1,9 @@
-from django.urls import path  # noqa: F401
+from rest_framework.routers import DefaultRouter
+
+from .views import CategoryViewSet
 
 app_name = "categories"
-urlpatterns: list = []
+
+router = DefaultRouter()
+router.register("categories", CategoryViewSet, basename="category")
+urlpatterns = router.urls
