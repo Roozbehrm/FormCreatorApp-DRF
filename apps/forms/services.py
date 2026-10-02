@@ -1,31 +1,94 @@
-"""
-مالک: روزبه (پیش از شروع کار فائزه)
+from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
 
-تصمیم: ذخیره‌ی تدریجی (هر جواب همان لحظه ثبت می‌شود) رفتار پیش‌فرض همه‌ی فرم‌هاست —
-نه فقط فرم‌های ترتیبی — تا با قطعی شبکه، فقط آخرین جواب از دست برود نه کل فرم.
-«ذخیره‌ی تدریجی» و «قفل ترتیب سوالات» دو چیز جدا هستند؛ enforce_field_order فقط دومی را کنترل می‌کند.
+from apps.core.cache import invalidate_form
+from apps.core.exceptions import AccessDenied, DomainError, StepLocked
 
-TODO:
-  start_submission(*, form, respondent=None, session_key="", ip=None, process_run=None) -> Submission
-    - نقطه‌ی شروع استاندارد برای پاسخ به هر فرمی (نه فقط ترتیبی)
-    - یک Submission با is_complete=False می‌سازد
+from .fields.base import FieldRegistry
+from .models import Answer, AnswerOption, Form, Submission
 
-  assert_field_unlocked(submission, field) -> None
-    - فقط وقتی form.enforce_field_order=True معنی دارد: اگر سوالی با order کمتر از field.order
-      هنوز در این submission جواب داده نشده، apps.core.exceptions.StepLocked بینداز (۴۰۹)
-    - اگر enforce_field_order=False، همیشه عبور کن (فقط چک کن field واقعاً متعلق به همین form است)
 
-  submit_field_answer(submission, field, raw) -> Answer
-    - مسیر استاندارد ثبت پاسخ برای همه‌ی فرم‌ها؛ هر بار صدا زده می‌شود یک سوال جواب داده شد
-    - assert_field_unlocked را صدا بزن (خودش تصمیم می‌گیرد قفل کند یا نه)
-    - با FieldRegistry اعتبارسنجی کن، Answer بساز/آپدیت کن (اگر جواب قبلی داشت، override کن)
-    - اگر همه‌ی فیلدهای اجباری فرم جواب دارند، submission.is_complete = True کن
+def unlock_form(form: Form, password: str) -> None:
+    """اگر فرم خصوصی است، گذرواژه را چک می‌کند؛ در غیر این صورت خطای دسترسی می‌دهد."""
+    if not form.is_private:
+        return
+    if not form.check_access_password(password):
+        raise AccessDenied("گذرواژه‌ی فرم نادرست است.")
 
-  finalize_submission(submission) -> Submission
-    - چک نهایی: همه‌ی فیلدهای is_required=True جواب دارند؟ اگر نه DomainError بده
-    - is_complete=True و زمان تکمیل را ثبت کن (برای گزارش «چند نفر فرم را رها کردند» به علی کمک می‌کند)
 
-  submit_form(*, form, data: dict, ...) -> Submission   [فقط برای واردات دسته‌ای/اسکریپت]
-    - نسخه‌ی یک‌جا: همه‌ی فیلدها را با هم می‌گیرد و اتمیک ثبت می‌کند
-    - برای وارد کردن دستی داده (مثلاً import از یک فایل CSV قدیمی) استفاده می‌شود، نه مسیر پاسخ‌دهی عمومی
-"""
+def start_submission(*, form: Form, respondent=None, session_key: str = "", ip=None, process_run=None) -> Submission:
+    if not form.is_accepting_responses():
+        raise DomainError("این فرم دیگر پاسخ نمی‌پذیرد.", code="form_closed")
+    return Submission.objects.create(
+        form=form, respondent=respondent, session_key=session_key, ip=ip, process_run=process_run
+    )
+
+
+def assert_field_unlocked(submission: Submission, field) -> None:
+    if not submission.form.enforce_field_order:
+        return
+    previous_ids = set(
+        submission.form.fields.filter(
+            Q(order__lt=field.order) | Q(order=field.order, id__lt=field.id)
+        ).values_list("id", flat=True)
+    )
+    answered_ids = set(submission.answers.values_list("field_id", flat=True))
+    if previous_ids - answered_ids:
+        raise StepLocked("برای این سوال باید ابتدا سوالات قبلی را جواب دهید.")
+
+
+@transaction.atomic
+def submit_field_answer(*, submission: Submission, field, raw) -> Answer:
+    if field.form_id != submission.form_id:
+        raise DomainError("این سوال متعلق به این فرم نیست.", code="field_form_mismatch")
+    assert_field_unlocked(submission, field)
+
+    if raw in (None, "", []):
+        if field.is_required:
+            raise DomainError(f"«{field.label}» اجباری است.", code="required")
+        Answer.objects.filter(submission=submission, field=field).delete()
+        return None
+
+    parsed = FieldRegistry.get(field.type).validate_answer(field, raw)
+    answer, _ = Answer.objects.update_or_create(
+        submission=submission,
+        field=field,
+        defaults={
+            "value": parsed.value,
+            "value_number": parsed.value_number,
+            "value_date": parsed.value_date,
+            "value_text": parsed.value_text,
+        },
+    )
+    answer.selected_options.all().delete()
+    if parsed.option_values:
+        options = field.options.filter(value__in=parsed.option_values)
+        AnswerOption.objects.bulk_create([AnswerOption(answer=answer, option=o) for o in options])
+    return answer
+
+
+def finalize_submission(submission: Submission) -> Submission:
+    required_ids = set(submission.form.fields.filter(is_required=True).values_list("id", flat=True))
+    answered_ids = set(submission.answers.values_list("field_id", flat=True))
+    missing = required_ids - answered_ids
+    if missing:
+        raise DomainError("همه‌ی سوالات اجباری جواب داده نشده‌اند.", code="incomplete_submission")
+    submission.is_complete = True
+    submission.completed_at = timezone.now()
+    submission.save(update_fields=["is_complete", "completed_at"])
+    invalidate_form(submission.form_id, submission.form.uuid)
+    return submission
+
+
+@transaction.atomic
+def submit_form(*, form: Form, data: dict, respondent=None, session_key: str = "", ip=None, process_run=None) -> Submission:
+
+    submission = start_submission(
+        form=form, respondent=respondent, session_key=session_key, ip=ip, process_run=process_run
+    )
+    for field in form.fields.all():
+        raw = data.get(str(field.id))
+        submit_field_answer(submission=submission, field=field, raw=raw)
+    finalize_submission(submission)
+    return submission
