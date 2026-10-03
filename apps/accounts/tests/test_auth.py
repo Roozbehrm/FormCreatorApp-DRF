@@ -1,4 +1,5 @@
 import pytest
+from rest_framework.test import APIClient
 
 
 @pytest.mark.django_db
@@ -12,9 +13,13 @@ def test_register_duplicate_email_rejected(api_client, user):
 
 @pytest.mark.django_db
 def test_login_returns_jwt(api_client, user):
-    response = api_client.post("/api/v1/auth/login/", {"username": user.username, "password": "pass12345!"})
+    response = api_client.post("/api/v1/auth/login/", {"username": user.username, "password": "StrongPass123!"})
     assert response.status_code == 200
-    assert "access" in response.data and "refresh" in response.data
+    assert "access" not in response.data and "refresh" not in response.data
+    assert response.cookies["access"].value
+    assert response.cookies["refresh"].value
+    assert response.cookies["access"]["httponly"]
+    assert response.cookies["refresh"]["httponly"]
 
 
 @pytest.mark.django_db
@@ -27,11 +32,58 @@ def test_login_wrong_password_rejected(api_client, user):
 def test_refresh_rotation_blacklists_old_refresh(api_client, user):
     login = api_client.post(
         "/api/v1/auth/login/",
-        {"username": user.username, "password": "pass12345!"},
+        {"username": user.username, "password": "StrongPass123!"},
     )
-    old_refresh = login.data["refresh"]
-    refresh = api_client.post("/api/v1/auth/token/refresh/", {"refresh": old_refresh})
+    old_refresh = login.cookies["refresh"].value
+    refresh = api_client.post("/api/v1/auth/token/refresh/")
     assert refresh.status_code == 200
-    assert refresh.data["refresh"] != old_refresh
-    reused = api_client.post("/api/v1/auth/token/refresh/", {"refresh": old_refresh})
+    new_refresh = refresh.cookies["refresh"].value
+    assert new_refresh != old_refresh
+    api_client.cookies["refresh"] = old_refresh
+    reused = api_client.post("/api/v1/auth/token/refresh/")
+    assert reused.status_code == 401
+
+
+@pytest.mark.django_db
+def test_access_cookie_authenticates_me(api_client, user):
+    api_client.post("/api/v1/auth/login/", {"username": user.username, "password": "StrongPass123!"})
+    response = api_client.get("/api/v1/auth/me/")
+    assert response.status_code == 200
+    assert response.data["username"] == user.username
+
+
+@pytest.mark.django_db
+def test_cookie_auth_requires_csrf_for_unsafe_requests(user):
+    client = APIClient(enforce_csrf_checks=True)
+    login = client.post(
+        "/api/v1/auth/login/",
+        {"username": user.username, "password": "StrongPass123!"},
+        format="json",
+    )
+    csrf_token = login.cookies["csrftoken"].value
+
+    rejected = client.patch("/api/v1/auth/me/", {"first_name": "Ali"}, format="json")
+    accepted = client.patch(
+        "/api/v1/auth/me/",
+        {"first_name": "Ali"},
+        format="json",
+        HTTP_X_CSRFTOKEN=csrf_token,
+    )
+
+    assert rejected.status_code == 403
+    assert accepted.status_code == 200
+
+
+@pytest.mark.django_db
+def test_logout_clears_cookies_and_blacklists_refresh(api_client, user):
+    login = api_client.post("/api/v1/auth/login/", {"username": user.username, "password": "StrongPass123!"})
+    old_refresh = login.cookies["refresh"].value
+
+    response = api_client.post("/api/v1/auth/logout/")
+
+    assert response.status_code == 200
+    assert response.cookies["access"]["max-age"] == 0
+    assert response.cookies["refresh"]["max-age"] == 0
+    api_client.cookies["refresh"] = old_refresh
+    reused = api_client.post("/api/v1/auth/token/refresh/")
     assert reused.status_code == 401

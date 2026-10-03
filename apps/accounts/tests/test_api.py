@@ -28,7 +28,9 @@ def test_login_returns_tokens(user):
         format="json",
     )
     assert response.status_code == 200
-    assert set(response.data) == {"access", "refresh"}
+    assert "access" not in response.data and "refresh" not in response.data
+    assert response.cookies["access"].value
+    assert response.cookies["refresh"].value
 
 
 @pytest.mark.django_db

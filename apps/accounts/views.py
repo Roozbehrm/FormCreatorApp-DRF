@@ -1,14 +1,23 @@
 from django.contrib.auth import authenticate, get_user_model
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
-
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.core.exceptions import DomainError
 
 from . import services
+from .authentication import (
+    REFRESH_TOKEN_COOKIE,
+    clear_auth_cookies,
+    enforce_csrf,
+    set_auth_cookies,
+)
 from .serializers import (
     LoginSerializer,
     MeSerializer,
@@ -81,7 +90,9 @@ class OTPVerifyView(APIView):
 
         user.is_verified = True
         user.save(update_fields=["is_verified"])
-        return Response({"detail": "کد تأیید شد.", **tokens_for_user(user)}, status=status.HTTP_200_OK)
+        response = Response({"detail": "کد تأیید شد."}, status=status.HTTP_200_OK)
+        set_auth_cookies(response, tokens_for_user(user), request)
+        return response
 
 
 class LoginView(APIView):
@@ -100,7 +111,48 @@ class LoginView(APIView):
         )
         if user is None:
             raise DomainError("نام کاربری یا رمز عبور نادرست است.", code="invalid_credentials", status_code=401)
-        return Response(tokens_for_user(user), status=status.HTTP_200_OK)
+        response = Response({"detail": "ورود موفق بود."}, status=status.HTTP_200_OK)
+        set_auth_cookies(response, tokens_for_user(user), request)
+        return response
+
+
+class CookieTokenRefreshView(TokenRefreshView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get(REFRESH_TOKEN_COOKIE)
+        if refresh_token is None:
+            return Response({"detail": "Refresh token cookie is missing."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        enforce_csrf(request)
+        serializer = self.get_serializer(data={"refresh": refresh_token})
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError:
+            return Response({"detail": "Refresh token is invalid or revoked."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        response = Response({"detail": "Token refreshed."}, status=status.HTTP_200_OK)
+        set_auth_cookies(response, serializer.validated_data, request)
+        return response
+
+
+class LogoutView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        enforce_csrf(request)
+        refresh_token = request.COOKIES.get(REFRESH_TOKEN_COOKIE)
+        if refresh_token:
+            try:
+                RefreshToken(refresh_token).blacklist()
+            except TokenError:
+                pass
+
+        response = Response({"detail": "خروج موفق بود."}, status=status.HTTP_200_OK)
+        clear_auth_cookies(response)
+        return response
 
 
 class MeView(generics.RetrieveUpdateAPIView):

@@ -86,34 +86,56 @@ TEMPLATES = [
     }
 ]
 
-DATABASES = {"default": env.db("DATABASE_URL", default="postgres://postgres:postgres@db:5432/formflow")}
+USE_SQLITE = env.bool("USE_SQLITE", default=False)
+if USE_SQLITE:
+    DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
+else:
+    DATABASES = {"default": env.db("DATABASE_URL", default="postgres://postgres:postgres@db:5432/formflow")}
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 
+USE_REDIS_CACHE = env.bool("USE_REDIS_CACHE", default=False)
 REDIS_URL = env("REDIS_URL", default="redis://redis:6379/0")
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": REDIS_URL,
-        "KEY_PREFIX": "formflow",
+if USE_REDIS_CACHE:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+            "KEY_PREFIX": "formflow",
+        }
     }
-}
+else:
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "formflow-local"}}
 
+CHANNELS_REDIS_URL = env("CHANNELS_REDIS_URL", default="redis://redis:6379/2")
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [env("CHANNELS_REDIS_URL", default="redis://redis:6379/2")]},
+        "CONFIG": {"hosts": [CHANNELS_REDIS_URL]},
     }
 }
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/1")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://redis:6379/1")
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
+CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_TIMEZONE = "Asia/Tehran"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_BEAT_SCHEDULE = {
+    "flush-visit-counters-every-minute": {
+        "task": "apps.reports.tasks.flush_visit_counters",
+        "schedule": 60.0,
+    },
+    "dispatch-report-schedules-every-15-minutes": {
+        "task": "apps.reports.tasks.dispatch_due_schedules",
+        "schedule": 900.0,
+    },
+}
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("apps.accounts.authentication.CookieJWTAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
@@ -125,7 +147,11 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.ScopedRateThrottle",),
-    "DEFAULT_THROTTLE_RATES": {"otp": "5/hour", "submit": "60/hour", "unlock": "10/hour"},
+    "DEFAULT_THROTTLE_RATES": {
+        "otp": "5/hour",
+        "submit": "60/hour",
+        "unlock": "10/hour",
+    },
 }
 
 SIMPLE_JWT = {
@@ -146,6 +172,8 @@ SPECTACULAR_SETTINGS = {
 OTP_LENGTH = env.int("OTP_LENGTH", default=6)
 OTP_TTL_SECONDS = env.int("OTP_TTL_SECONDS", default=120)
 OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
+OTP_REQUEST_WINDOW_SECONDS = env.int("OTP_REQUEST_WINDOW_SECONDS", default=3600)
+OTP_REQUEST_MAX_PER_WINDOW = env.int("OTP_REQUEST_MAX_PER_WINDOW", default=5)
 
 EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = env("EMAIL_HOST", default="")
@@ -155,7 +183,9 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@formflow.local")
 
-REST_AUTH = {"USE_JWT": True, "JWT_AUTH_HTTPONLY": False, "SESSION_LOGIN": False, "TOKEN_MODEL": None}
+SMS_BACKEND = env("SMS_BACKEND", default="console")
+KAVENEGAR_API_KEY = env("KAVENEGAR_API_KEY", default="")
+KAVENEGAR_OTP_TEMPLATE = env("KAVENEGAR_OTP_TEMPLATE", default="")
 
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
 GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", default="")
@@ -165,12 +195,19 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = "username_email"
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {"client_id": GOOGLE_CLIENT_ID, "secret": GOOGLE_CLIENT_SECRET, "key": ""},
         "SCOPE": ["profile", "email"],
     }
 }
+REST_AUTH = {"USE_JWT": True, "JWT_AUTH_HTTPONLY": False, "SESSION_LOGIN": False, "TOKEN_MODEL": None}
+
+PRIVATE_ACCESS_TOKEN_TTL_SECONDS = env.int("PRIVATE_ACCESS_TOKEN_TTL_SECONDS", default=900)
+PRIVATE_ACCESS_TOKEN_SALT = env("PRIVATE_ACCESS_TOKEN_SALT", default="formflow-private-access")
 
 LANGUAGE_CODE = "fa-ir"
 TIME_ZONE = "Asia/Tehran"
@@ -184,5 +221,20 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 CACHE_TTL_FORM_SCHEMA = env.int("CACHE_TTL_FORM_SCHEMA", default=300)
 CACHE_TTL_REPORT = env.int("CACHE_TTL_REPORT", default=60)
+VISIT_PENDING_TTL_SECONDS = env.int("VISIT_PENDING_TTL_SECONDS", default=172800)
+REPORT_WEBHOOK_TIMEOUT_SECONDS = env.int("REPORT_WEBHOOK_TIMEOUT_SECONDS", default=10)
 
-REPORT_WEBHOOK_TIMEOUT_SECONDS = 10
+CORS_ALLOWED_ORIGINS = [origin for origin in env.list("CORS_ALLOWED_ORIGINS", default=[]) if origin]
+CORS_ALLOW_CREDENTIALS = False
+CSRF_TRUSTED_ORIGINS = [origin for origin in env.list("CSRF_TRUSTED_ORIGINS", default=[]) if origin]
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=False)
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=False)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = env(
+    "SECURE_REFERRER_POLICY",
+    default="strict-origin-when-cross-origin",
+)
+
+SENTRY_DSN = env("SENTRY_DSN", default="")
