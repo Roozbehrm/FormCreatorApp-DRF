@@ -18,23 +18,31 @@ Table otp_request_logs {
   created_at timestamp
   updated_at timestamp
   note: 'فقط audit — خود کد OTP در Redis است، نه اینجا'
+
+  indexes {
+    (identifier, purpose)
+  }
 }
 
 Table categories {
   id bigint [pk]
-  owner_id bigint [ref: > users.id, not null]
-  parent_id bigint [ref: >? categories.id]
+  owner_id bigint [not null]
+  parent_id bigint [null]
   title varchar
   color varchar [null]
   created_at timestamp
   updated_at timestamp
+
+  indexes {
+    (owner_id, title, parent_id) [unique]
+  }
 }
 
 Table forms {
   id bigint [pk]
   uuid uuid [unique]
-  owner_id bigint [ref: > users.id, not null]
-  category_id bigint [ref: >? categories.id]
+  owner_id bigint [not null]
+  category_id bigint [null]
   title varchar
   description text [null]
   visibility varchar // public | private
@@ -48,7 +56,7 @@ Table forms {
 
 Table fields {
   id bigint [pk]
-  form_id bigint [ref: > forms.id, not null]
+  form_id bigint [not null]
   type varchar // text|textarea|number|select|checkbox|rating|date
   label varchar
   help_text varchar [null]
@@ -57,21 +65,29 @@ Table fields {
   config jsonb
   created_at timestamp
   updated_at timestamp
+
+  indexes {
+    (form_id, order)
+  }
 }
 
 Table field_options {
   id bigint [pk]
-  field_id bigint [ref: > fields.id, not null]
+  field_id bigint [not null]
   label varchar
   value varchar
   order int
+
+  indexes {
+    (field_id, value) [unique]
+  }
 }
 
 Table processes {
   id bigint [pk]
   uuid uuid [unique]
-  owner_id bigint [ref: > users.id, not null]
-  category_id bigint [ref: >? categories.id]
+  owner_id bigint [not null]
+  category_id bigint [null]
   title varchar
   description text [null]
   visibility varchar
@@ -84,16 +100,20 @@ Table processes {
 
 Table process_steps {
   id bigint [pk]
-  process_id bigint [ref: > processes.id, not null]
-  form_id bigint [ref: > forms.id, not null]
+  process_id bigint [not null]
+  form_id bigint [not null]
   order int
   is_required boolean
+
+  indexes {
+    (process_id, form_id) [unique]
+  }
 }
 
 Table process_runs {
   id bigint [pk]
-  process_id bigint [ref: > processes.id, not null]
-  respondent_id bigint [ref: >? users.id]
+  process_id bigint [not null]
+  respondent_id bigint [null]
   session_key varchar
   status varchar // in_progress | completed
   completed_at timestamp [null]
@@ -103,9 +123,9 @@ Table process_runs {
 
 Table submissions {
   id bigint [pk]
-  form_id bigint [ref: > forms.id, not null]
-  process_run_id bigint [ref: >? process_runs.id]
-  respondent_id bigint [ref: >? users.id]
+  form_id bigint [not null]
+  process_run_id bigint [null]
+  respondent_id bigint [null]
   session_key varchar
   ip varchar [null]
   is_complete boolean
@@ -113,42 +133,64 @@ Table submissions {
   created_at timestamp
   updated_at timestamp
   note: 'ذخیره تدریجی: is_complete=False تا finalize_submission صدا زده شود'
+
+  indexes {
+    (form_id, created_at)
+  }
 }
 
 Table step_completions {
   id bigint [pk]
-  run_id bigint [ref: > process_runs.id, not null]
-  step_id bigint [ref: > process_steps.id, not null]
-  submission_id bigint [ref: - submissions.id, not null, unique]
+  run_id bigint [not null]
+  step_id bigint [not null]
+  submission_id bigint [not null, unique]
+
+  indexes {
+    (run_id, step_id) [unique]
+  }
 }
 
 Table answers {
   id bigint [pk]
-  submission_id bigint [ref: > submissions.id, not null]
-  field_id bigint [ref: > fields.id, not null]
+  submission_id bigint [not null]
+  field_id bigint [not null]
   value jsonb [null]
   value_number decimal [null]
   value_date timestamp [null]
   value_text text [null]
+
+  indexes {
+    (submission_id, field_id) [unique]
+    (field_id, value_number)
+  }
 }
 
 Table answer_options {
   id bigint [pk]
-  answer_id bigint [ref: > answers.id, not null]
-  option_id bigint [ref: > field_options.id, not null]
+  answer_id bigint [not null]
+  option_id bigint [not null]
+
+  indexes {
+    (answer_id, option_id) [unique]
+  }
 }
 
 Table visit_counters {
   id bigint [pk]
-  target_type varchar // form | process 
+  target_type varchar // form | process
   object_id int
   date date
   count int
+
+  indexes {
+    (target_type, object_id, date) [unique]
+    (target_type, object_id)
+  }
 }
 
 Table report_schedules {
   id bigint [pk]
-  owner_id bigint [ref: > users.id, not null]
+  owner_id bigint [not null]
   target_type varchar [null]
   object_id int [null]
   period varchar // weekly | monthly
@@ -164,10 +206,48 @@ Table report_schedules {
 
 Table report_deliveries {
   id bigint [pk]
-  schedule_id bigint [ref: > report_schedules.id, not null]
+  schedule_id bigint [not null]
   is_success boolean
   status_code smallint [null]
   error text [null]
   created_at timestamp
   updated_at timestamp
 }
+
+
+Ref: categories.owner_id > users.id
+Ref: categories.parent_id >? categories.id
+
+Ref: forms.owner_id > users.id
+Ref: forms.category_id >? categories.id
+
+Ref: fields.form_id > forms.id
+
+Ref: field_options.field_id > fields.id
+
+Ref: processes.owner_id > users.id
+Ref: processes.category_id >? categories.id
+
+Ref: process_steps.process_id > processes.id
+Ref: process_steps.form_id > forms.id
+
+Ref: process_runs.process_id > processes.id
+Ref: process_runs.respondent_id >? users.id
+
+Ref: submissions.form_id > forms.id
+Ref: submissions.process_run_id >? process_runs.id
+Ref: submissions.respondent_id >? users.id
+
+Ref: step_completions.run_id > process_runs.id
+Ref: step_completions.step_id > process_steps.id
+Ref: step_completions.submission_id - submissions.id
+
+Ref: answers.submission_id > submissions.id
+Ref: answers.field_id > fields.id
+
+Ref: answer_options.answer_id > answers.id
+Ref: answer_options.option_id > field_options.id
+
+Ref: report_schedules.owner_id > users.id
+
+Ref: report_deliveries.schedule_id > report_schedules.id
