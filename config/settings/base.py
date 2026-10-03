@@ -149,6 +149,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.ScopedRateThrottle",),
     "DEFAULT_THROTTLE_RATES": {
         "otp": "5/hour",
+        "google_login": "10/hour",
         "submit": "60/hour",
         "unlock": "10/hour",
     },

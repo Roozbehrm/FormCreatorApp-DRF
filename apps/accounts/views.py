@@ -1,3 +1,5 @@
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from dj_rest_auth.registration.views import SocialLoginView
 from django.contrib.auth import authenticate, get_user_model
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status
@@ -113,6 +115,18 @@ class LoginView(APIView):
             raise DomainError("نام کاربری یا رمز عبور نادرست است.", code="invalid_credentials", status_code=401)
         response = Response({"detail": "ورود موفق بود."}, status=status.HTTP_200_OK)
         set_auth_cookies(response, tokens_for_user(user), request)
+        return response
+
+
+class GoogleLoginView(SocialLoginView):
+    adapter_class = GoogleOAuth2Adapter
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "google_login"
+
+    def get_response(self):
+        response = Response({"detail": "ورود با گوگل موفق بود."}, status=status.HTTP_200_OK)
+        set_auth_cookies(response, tokens_for_user(self.user), self.request)
         return response
 
 

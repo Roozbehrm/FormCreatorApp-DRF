@@ -1,3 +1,5 @@
+from unittest.mock import Mock, patch
+
 import pytest
 from rest_framework.test import APIClient
 
@@ -26,6 +28,23 @@ def test_login_returns_jwt(api_client, user):
 def test_login_wrong_password_rejected(api_client, user):
     response = api_client.post("/api/v1/auth/login/", {"username": user.username, "password": "wrong"})
     assert response.status_code == 401
+
+
+@pytest.mark.django_db
+def test_google_login_sets_http_only_jwt_cookies(api_client, user):
+    serializer = Mock()
+    serializer.validated_data = {"user": user}
+    with patch("apps.accounts.views.GoogleLoginView.get_serializer", return_value=serializer):
+        response = api_client.post(
+            "/api/v1/auth/social/google/",
+            {"access_token": "google-oauth-access-token"},
+            format="json",
+        )
+
+    assert response.status_code == 200
+    assert "access" not in response.data and "refresh" not in response.data
+    assert response.cookies["access"]["httponly"]
+    assert response.cookies["refresh"]["httponly"]
 
 
 @pytest.mark.django_db
