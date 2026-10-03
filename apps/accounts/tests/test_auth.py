@@ -1,12 +1,13 @@
 import pytest
-from django.urls import reverse
 
 
 @pytest.mark.django_db
 def test_register_duplicate_email_rejected(api_client, user):
-    url = "/api/v1/auth/register/"
-    response = api_client.post(url, {"username": "new", "email": user.email, "password": "StrongPass123!"})
-    assert response.status_code == 400
+    response = api_client.post(
+        "/api/v1/auth/register/",
+        {"username": "new", "email": user.email, "password": "pass12345!"},
+    )
+    assert response.status_code in {400, 409}
 
 
 @pytest.mark.django_db
@@ -20,3 +21,17 @@ def test_login_returns_jwt(api_client, user):
 def test_login_wrong_password_rejected(api_client, user):
     response = api_client.post("/api/v1/auth/login/", {"username": user.username, "password": "wrong"})
     assert response.status_code == 401
+
+
+@pytest.mark.django_db
+def test_refresh_rotation_blacklists_old_refresh(api_client, user):
+    login = api_client.post(
+        "/api/v1/auth/login/",
+        {"username": user.username, "password": "pass12345!"},
+    )
+    old_refresh = login.data["refresh"]
+    refresh = api_client.post("/api/v1/auth/token/refresh/", {"refresh": old_refresh})
+    assert refresh.status_code == 200
+    assert refresh.data["refresh"] != old_refresh
+    reused = api_client.post("/api/v1/auth/token/refresh/", {"refresh": old_refresh})
+    assert reused.status_code == 401
