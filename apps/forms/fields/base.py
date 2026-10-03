@@ -10,19 +10,31 @@ class ParsedAnswer:
     value_number: Any = None
     value_date: Any = None
     value_text: str = ""
-    option_values: list = dc_field(default_factory=list)
+    option_values: list[str] = dc_field(default_factory=list)
 
 
 class BaseFieldHandler:
-    type: str = ""
-    config_schema: dict = {}
-    requires_options: bool = False
-    aggregation: str = "list"
+    type = ""
+    config_schema = {}
+    requires_options = False
+    aggregation = "list"
 
     def validate_config(self, config: dict) -> dict:
+        if not isinstance(config, dict):
+            raise DomainError("تنظیمات فیلد باید شیء باشد.", code="invalid_config")
         unknown = set(config) - set(self.config_schema)
         if unknown:
             raise DomainError(f"کلیدهای ناشناخته در تنظیمات: {sorted(unknown)}", code="invalid_config")
+        for key, value in config.items():
+            expected = self.config_schema[key]
+            if expected is int and (isinstance(value, bool) or not isinstance(value, int)):
+                raise DomainError(f"نوع {key} نامعتبر است.", code="invalid_config")
+            if expected is float and (isinstance(value, bool) or not isinstance(value, (int, float))):
+                raise DomainError(f"نوع {key} نامعتبر است.", code="invalid_config")
+            if expected is bool and not isinstance(value, bool):
+                raise DomainError(f"نوع {key} نامعتبر است.", code="invalid_config")
+            if expected is str and not isinstance(value, str):
+                raise DomainError(f"نوع {key} نامعتبر است.", code="invalid_config")
         return config
 
     def validate_answer(self, field, raw) -> ParsedAnswer:
@@ -33,7 +45,7 @@ class BaseFieldHandler:
 
 
 class FieldRegistry:
-    _handlers: dict[str, BaseFieldHandler] = {}
+    _handlers = {}
 
     @classmethod
     def register(cls, handler_cls):
@@ -44,9 +56,9 @@ class FieldRegistry:
     def get(cls, field_type: str) -> BaseFieldHandler:
         try:
             return cls._handlers[field_type]
-        except KeyError:
-            raise DomainError(f"نوع فیلد پشتیبانی نمی‌شود: {field_type}", code="unknown_field_type")
+        except KeyError as exc:
+            raise DomainError(f"نوع فیلد پشتیبانی نمی‌شود: {field_type}", code="unknown_field_type") from exc
 
     @classmethod
-    def all(cls) -> dict:
+    def all(cls):
         return dict(cls._handlers)
