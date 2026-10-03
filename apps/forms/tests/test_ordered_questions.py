@@ -2,7 +2,7 @@ import pytest
 
 from apps.core.exceptions import DomainError, StepLocked
 from apps.forms.models import Field
-from apps.forms.services import finalize_submission, start_submission, submit_field_answer
+from apps.forms.services import finalize_submission, start_submission, submit_field_answer, submit_form
 
 
 @pytest.mark.django_db
@@ -39,3 +39,14 @@ def test_required_empty_is_rejected(user, form):
     submission = start_submission(form=form, respondent=user)
     with pytest.raises(DomainError):
         submit_field_answer(submission=submission, field=field, raw="")
+
+
+@pytest.mark.django_db
+def test_submit_form_rolls_back_all_data_when_a_later_field_is_invalid(user, form):
+    Field.objects.create(form=form, type="text", label="First", order=1, is_required=True)
+    Field.objects.create(form=form, type="number", label="Second", order=2, is_required=True)
+
+    with pytest.raises(DomainError):
+        submit_form(form=form, data={"1": "saved", "2": "not-a-number"}, respondent=user)
+
+    assert form.submissions.count() == 0

@@ -13,6 +13,10 @@ def process_report_key(process_id: int) -> str:
     return f"process:report:{process_id}"
 
 
+def visit_index_key() -> str:
+    return "visit:index"
+
+
 def invalidate_form(form_id: int, form_uuid) -> None:
     cache.delete_many([form_schema_key(form_uuid), form_report_key(form_id)])
 

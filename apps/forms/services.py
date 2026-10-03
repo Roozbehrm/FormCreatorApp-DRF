@@ -39,7 +39,9 @@ def assert_field_unlocked(submission: Submission, field) -> None:
 
 
 @transaction.atomic
-def submit_field_answer(*, submission: Submission, field, raw) -> Answer:
+def submit_field_answer(*, submission: Submission, field, raw) -> Answer | None:
+    if submission.is_complete:
+        raise DomainError("این پاسخ قبلاً نهایی شده است.", code="submission_completed", status_code=409)
     if field.form_id != submission.form_id:
         raise DomainError("این سوال متعلق به این فرم نیست.", code="field_form_mismatch")
     assert_field_unlocked(submission, field)

@@ -54,3 +54,33 @@ def test_process_auto_completes_after_required_steps(user, form, another_form):
     run.refresh_from_db()
     assert run.status == RunStatus.COMPLETED
     assert run.completed_at is not None
+
+
+@pytest.mark.django_db
+def test_completed_process_run_rejects_new_step_submission(user, form):
+    process = Process.objects.create(owner=user, title="P", type="free")
+    step = ProcessStep.objects.create(process=process, form=form, order=1, is_required=True)
+    run = ProcessRun.objects.create(process=process, respondent=user)
+    submission = start_submission(form=form, respondent=user, process_run=run)
+    finalize_submission(submission)
+    complete_step(run, step, submission)
+
+    assert run.status == RunStatus.COMPLETED
+
+
+@pytest.mark.django_db
+def test_process_schema_is_locked_after_a_run_exists(user, form):
+    process = Process.objects.create(owner=user, title="P", type="free")
+    ProcessStep.objects.create(process=process, form=form, order=1, is_required=True)
+    ProcessRun.objects.create(process=process, respondent=user)
+
+    from apps.processes.serializers import ProcessSerializer
+    from rest_framework.test import APIRequestFactory
+
+    request = APIRequestFactory().patch("/", {"steps": []}, format="json")
+    request.user = user
+    serializer = ProcessSerializer(
+        instance=process, data={"steps": []}, partial=True, context={"request": request}
+    )
+    assert serializer.is_valid() is False
+    assert "steps" in serializer.errors

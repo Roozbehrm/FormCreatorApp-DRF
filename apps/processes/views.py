@@ -1,5 +1,6 @@
 from secrets import token_urlsafe
 
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import permissions, serializers, status, viewsets
@@ -50,14 +51,16 @@ def _session_key(request):
 
 def get_or_create_run(process, request, session_key):
     respondent = request.user if request.user.is_authenticated else None
-    filters = {"process": process, "status": "in_progress"}
+    filters = {"process": process}
     if respondent:
         filters["respondent"] = respondent
     else:
         filters["session_key"] = session_key
+
     run = ProcessRun.objects.filter(**filters).order_by("-created_at").first()
     if run:
         return run
+
     return ProcessRun.objects.create(
         process=process,
         respondent=respondent,
@@ -222,22 +225,38 @@ class PublicProcessStepSubmitView(APIView):
         assert_private_access(process, request, "process")
         step = get_object_or_404(ProcessStep, id=step_id, process=process)
         session_key = _session_key(request)
-        run = get_or_create_run(process, request, session_key)
-        assert_step_unlocked(run, step)
-
         answers = request.data.get("answers", {})
         if not isinstance(answers, dict):
             raise serializers.ValidationError({"answers": "answers باید یک شیء باشد."})
-        submission = submit_form(
-            form=step.form,
-            data=answers,
-            respondent=run.respondent,
-            session_key=session_key,
-            ip=request.META.get("REMOTE_ADDR"),
-            process_run=run,
-        )
-        complete_step(run, step, submission)
-        run.refresh_from_db()
+
+        with transaction.atomic():
+            run = get_or_create_run(process, request, session_key)
+            run = (
+                ProcessRun.objects
+                .select_for_update()
+                .select_related("process")
+                .get(pk=run.pk)
+            )
+
+            if run.completions.filter(step=step).exists():
+                raise DomainError(
+                    "این مرحله قبلاً تکمیل شده است.",
+                    code="step_already_completed",
+                    status_code=409,
+                )
+
+            assert_step_unlocked(run, step)
+
+            submission = submit_form(
+                form=step.form,
+                data=answers,
+                respondent=run.respondent,
+                session_key=session_key,
+                ip=request.META.get("REMOTE_ADDR"),
+                process_run=run,
+            )
+            complete_step(run, step, submission)
+            run.refresh_from_db()
         return Response(
             _public_state(process, run, session_key) | {"submission_id": submission.id},
             status=status.HTTP_201_CREATED,

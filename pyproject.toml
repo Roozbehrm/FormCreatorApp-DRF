@@ -15,5 +15,5 @@ exclude = "migrations"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
-python_files = ["test_*.py"]
+python_files = ["test*.py"]
 addopts = "--cov=apps --cov-report=term-missing -q"

@@ -106,3 +106,39 @@ def test_logout_clears_cookies_and_blacklists_refresh(api_client, user):
     api_client.cookies["refresh"] = old_refresh
     reused = api_client.post("/api/v1/auth/token/refresh/")
     assert reused.status_code == 401
+
+
+@pytest.mark.django_db
+def test_unverified_user_cannot_password_login(api_client, user):
+    user.is_verified = False
+    user.save(update_fields=["is_verified"])
+    response = api_client.post(
+        "/api/v1/auth/login/",
+        {"username": user.username, "password": "StrongPass123!"},
+        format="json",
+    )
+    assert response.status_code == 403
+    assert response.data["error"]["code"] == "user_not_verified"
+
+
+@pytest.mark.django_db
+def test_password_reset_changes_password_without_logging_in(api_client, user, settings):
+    from apps.accounts import services
+    from apps.accounts.models import OTPPurpose
+
+    code = services.generate_otp(user.email, OTPPurpose.RESET)
+    response = api_client.post(
+        "/api/v1/auth/password/reset/",
+        {
+            "identifier": user.email,
+            "purpose": OTPPurpose.RESET,
+            "code": code,
+            "new_password": "NewStrongPass123!",
+        },
+        format="json",
+    )
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert user.check_password("NewStrongPass123!")
+    assert "access" not in response.cookies
+    assert "refresh" not in response.cookies

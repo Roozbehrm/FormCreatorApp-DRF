@@ -1,7 +1,7 @@
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from dj_rest_auth.registration.views import SocialLoginView
 from django.contrib.auth import authenticate, get_user_model
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import generics, permissions, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -25,6 +25,7 @@ from .serializers import (
     MeSerializer,
     OTPRequestSerializer,
     OTPVerifySerializer,
+    PasswordResetSerializer,
     RegisterSerializer,
     tokens_for_user,
 )
@@ -58,6 +59,7 @@ class OTPRequestView(APIView):
         identifier = serializer.validated_data["identifier"]
         purpose = serializer.validated_data["purpose"]
 
+        services.ensure_otp_rate_limit(identifier)
         code = services.generate_otp(identifier, purpose, ip=_client_ip(request))
         if "@" in identifier:
             send_otp_email.delay(identifier, code)
@@ -97,6 +99,44 @@ class OTPVerifyView(APIView):
         return response
 
 
+class PasswordResetView(APIView):
+    """Reset a user's password after successful reset-purpose OTP verification."""
+
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        request=PasswordResetSerializer,
+        responses={200: OpenApiResponse(description="Password reset successful")},
+    )
+    def post(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        identifier = serializer.validated_data["identifier"]
+        code = serializer.validated_data["code"]
+        new_password = serializer.validated_data["new_password"]
+
+        services.verify_otp(identifier, "reset", code)
+
+        user = User.objects.filter(email__iexact=identifier).first()
+        if user is None:
+            user = User.objects.filter(phone=identifier).first()
+
+        if user is None:
+            return Response(
+                {"detail": "درخواست بازیابی معتبر نیست."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        return Response(
+            {"detail": "رمز عبور با موفقیت تغییر کرد."},
+            status=status.HTTP_200_OK,
+        )
+
+
 class LoginView(APIView):
 
 
@@ -120,6 +160,7 @@ class LoginView(APIView):
 
 class GoogleLoginView(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
+    throttle_classes = [ScopedRateThrottle]
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
     throttle_scope = "google_login"

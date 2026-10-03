@@ -1,8 +1,7 @@
-"""
-مالک: روزبه (امتیازی)
-TODO: websocket_urlpatterns را با re_path به FormReportConsumer وصل کن:
-      r"^ws/reports/forms/(?P<uuid>[0-9a-f-]+)/$"
-config/asgi.py مستقیماً این متغیر را import می‌کند — نامش را عوض نکن.
-"""
+from django.urls import re_path
 
-websocket_urlpatterns: list = []
+from .consumers import FormReportConsumer
+
+websocket_urlpatterns = [
+    re_path(r"^ws/reports/forms/(?P<uuid>[0-9a-f-]+)/$", FormReportConsumer.as_asgi()),
+]

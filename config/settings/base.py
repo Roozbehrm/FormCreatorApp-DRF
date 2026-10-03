@@ -144,6 +144,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.StandardPagination",
     "PAGE_SIZE": 20,
+    "URL_FORMAT_OVERRIDE": None,
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.ScopedRateThrottle",),
@@ -226,11 +227,13 @@ VISIT_PENDING_TTL_SECONDS = env.int("VISIT_PENDING_TTL_SECONDS", default=172800)
 REPORT_WEBHOOK_TIMEOUT_SECONDS = env.int("REPORT_WEBHOOK_TIMEOUT_SECONDS", default=10)
 
 CORS_ALLOWED_ORIGINS = [origin for origin in env.list("CORS_ALLOWED_ORIGINS", default=[]) if origin]
-CORS_ALLOW_CREDENTIALS = False
+CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [origin for origin in env.list("CSRF_TRUSTED_ORIGINS", default=[]) if origin]
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
 SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=False)
+SESSION_COOKIE_SAMESITE = env("SESSION_COOKIE_SAMESITE", default="Lax")
 CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=False)
+CSRF_COOKIE_SAMESITE = env("CSRF_COOKIE_SAMESITE", default="Lax")
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_REFERRER_POLICY = env(

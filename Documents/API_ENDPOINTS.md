@@ -5,6 +5,7 @@
 | POST | `/api/v1/auth/register/` | مهیار |
 | POST | `/api/v1/auth/otp/request/` | مهیار |
 | POST | `/api/v1/auth/otp/verify/` | مهیار |
+| POST | `/api/v1/auth/password/reset/` | مهیار |
 | POST | `/api/v1/auth/login/` | مهیار |
 | POST | `/api/v1/auth/token/refresh/` | مهیار |
 | POST | `/api/v1/auth/social/google/` | مهیار (امتیازی) |

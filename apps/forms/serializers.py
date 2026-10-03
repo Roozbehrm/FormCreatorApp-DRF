@@ -63,6 +63,14 @@ class FieldSerializer(serializers.ModelSerializer):
 
         handler = FieldRegistry.get(field_type)
 
+        if self.instance and self.instance.form.submissions.filter(is_complete=True).exists():
+            protected = {"type", "label", "help_text", "is_required", "config", "options"}
+            changed = protected.intersection(attrs)
+            if changed:
+                raise serializers.ValidationError(
+                    {"field": "ساختار فیلد پس از ثبت پاسخ قابل تغییر نیست."}
+                )
+
         options = attrs.get("options")
 
         if handler.requires_options and not options and not self.instance:
@@ -162,3 +170,19 @@ class FormDetailSerializer(serializers.ModelSerializer):
             "fields",
         ]
         read_only_fields = ["uuid"]
+
+
+class PublicFieldSerializer(serializers.ModelSerializer):
+    options = FieldOptionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Field
+        fields = ("id", "type", "label", "help_text", "order", "is_required", "config", "options")
+
+
+class PublicFormSerializer(serializers.ModelSerializer):
+    fields = PublicFieldSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Form
+        fields = ("uuid", "title", "description", "visibility", "enforce_field_order", "fields")

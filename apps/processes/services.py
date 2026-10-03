@@ -43,7 +43,11 @@ def complete_step(run: ProcessRun, step: ProcessStep, submission):
         defaults={"submission": submission},
     )
     if not created and completion.submission_id != submission.id:
-        raise DomainError("این مرحله قبلاً با پاسخ دیگری تکمیل شده است.", code="step_already_completed")
+        raise DomainError(
+            "این مرحله قبلاً با پاسخ دیگری تکمیل شده است.",
+            code="step_already_completed",
+            status_code=409,
+        )
 
     required_ids = set(run.process.steps.filter(is_required=True).values_list("id", flat=True))
     completed_ids = set(

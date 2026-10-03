@@ -76,3 +76,20 @@ def test_kavenegar_sms_task_uses_verify_lookup_dict(settings):
             "type": "sms",
         }
     )
+
+
+@pytest.mark.django_db
+def test_otp_request_endpoint_uses_identifier_rate_limit(api_client, user, settings):
+    settings.OTP_REQUEST_MAX_PER_WINDOW = 1
+    first = api_client.post(
+        "/api/v1/auth/otp/request/",
+        {"identifier": user.email, "purpose": OTPPurpose.LOGIN},
+        format="json",
+    )
+    second = api_client.post(
+        "/api/v1/auth/otp/request/",
+        {"identifier": user.email, "purpose": OTPPurpose.LOGIN},
+        format="json",
+    )
+    assert first.status_code == 202
+    assert second.status_code == 429

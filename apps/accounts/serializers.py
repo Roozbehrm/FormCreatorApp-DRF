@@ -88,6 +88,12 @@ class LoginSerializer(serializers.Serializer):
             )
         if not user.is_active:
             raise DomainError("حساب کاربری غیرفعال است.", code="inactive_user", status_code=401)
+        if not user.is_verified:
+            raise DomainError(
+                "حساب کاربری هنوز تأیید نشده است.",
+                code="user_not_verified",
+                status_code=403,
+            )
         attrs["user"] = user
         return attrs
 
@@ -105,6 +111,17 @@ class MeSerializer(serializers.ModelSerializer):
             "last_name",
         )
         read_only_fields = ("id", "is_verified")
+
+    def update(self, instance, validated_data):
+        old_email = instance.email
+        old_phone = instance.phone
+        instance = super().update(instance, validated_data)
+
+        if instance.email != old_email or instance.phone != old_phone:
+            instance.is_verified = False
+            instance.save(update_fields=["is_verified"])
+
+        return instance
 
 
 def tokens_for_user(user):

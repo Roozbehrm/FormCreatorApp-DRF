@@ -1,0 +1,169 @@
+{
+  "info": {
+    "_postman_id": "a58e824b-7df4-4aaf-a9b0-24270d26082e",
+    "name": "FormFlow API v1",
+    "description": "Core authentication, forms, processes, categories, and reports requests. JWTs are issued as HttpOnly cookies; provide the CSRF cookie value in X-CSRFToken for unsafe cookie-authenticated requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000/api/v1" },
+    { "key": "username", "value": "" },
+    { "key": "password", "value": "" },
+    { "key": "csrfToken", "value": "" },
+    { "key": "googleAccessToken", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "formUuid", "value": "" },
+    { "key": "fieldId", "value": "" },
+    { "key": "submissionId", "value": "" },
+    { "key": "sessionKey", "value": "" },
+    { "key": "privateAccessToken", "value": "" },
+    { "key": "processUuid", "value": "" },
+    { "key": "stepId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"user@example.com\",\n  \"password\": \"{{password}}\"\n}" },
+            "url": "{{baseUrl}}/auth/register/"
+          }
+        },
+        {
+          "name": "Password login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}" },
+            "url": "{{baseUrl}}/auth/login/"
+          }
+        },
+        {
+          "name": "Google OAuth login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"access_token\": \"{{googleAccessToken}}\"\n}" },
+            "url": "{{baseUrl}}/auth/social/google/"
+          }
+        },
+        {
+          "name": "Request OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"user@example.com\",\n  \"purpose\": \"login\"\n}" },
+            "url": "{{baseUrl}}/auth/otp/request/"
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"user@example.com\",\n  \"purpose\": \"login\",\n  \"code\": \"123456\"\n}" },
+            "url": "{{baseUrl}}/auth/otp/verify/"
+          }
+        },
+        {
+          "name": "Refresh cookies",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-CSRFToken", "value": "{{csrfToken}}" }],
+            "url": "{{baseUrl}}/auth/token/refresh/"
+          }
+        },
+        {
+          "name": "Current user",
+          "request": { "method": "GET", "url": "{{baseUrl}}/auth/me/" }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-CSRFToken", "value": "{{csrfToken}}" }],
+            "url": "{{baseUrl}}/auth/logout/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        { "name": "List categories", "request": { "method": "GET", "url": "{{baseUrl}}/categories/" } },
+        {
+          "name": "Create category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRFToken", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Example\",\n  \"color\": \"#336699\"\n}" },
+            "url": "{{baseUrl}}/categories/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Forms",
+      "item": [
+        { "name": "List my forms", "request": { "method": "GET", "url": "{{baseUrl}}/forms/" } },
+        {
+          "name": "Create form",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-CSRFToken", "value": "{{csrfToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Example form\",\n  \"description\": \"\",\n  \"visibility\": \"public\",\n  \"is_active\": true\n}" },
+            "url": "{{baseUrl}}/forms/"
+          }
+        },
+        { "name": "Public form schema", "request": { "method": "GET", "url": "{{baseUrl}}/public/forms/{{formUuid}}/" } },
+        {
+          "name": "Unlock private form",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"password\": \"{{password}}\"\n}" },
+            "url": "{{baseUrl}}/public/forms/{{formUuid}}/unlock/"
+          }
+        },
+        {
+          "name": "Start public submission",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-Private-Access-Token", "value": "{{privateAccessToken}}" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/public/forms/{{formUuid}}/start/"
+          }
+        },
+        {
+          "name": "Submit one answer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-Session-Key", "value": "{{sessionKey}}" }, { "key": "X-Private-Access-Token", "value": "{{privateAccessToken}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"answer\": \"Example answer\"\n}" },
+            "url": "{{baseUrl}}/public/forms/{{formUuid}}/submissions/{{submissionId}}/answer/{{fieldId}}/"
+          }
+        },
+        { "name": "Finalize submission", "request": { "method": "POST", "header": [{ "key": "X-Session-Key", "value": "{{sessionKey}}" }, { "key": "X-Private-Access-Token", "value": "{{privateAccessToken}}" }], "url": "{{baseUrl}}/public/forms/{{formUuid}}/submissions/{{submissionId}}/finalize/" } },
+        { "name": "List completed submissions", "request": { "method": "GET", "header": [{ "key": "X-CSRFToken", "value": "{{csrfToken}}" }], "url": "{{baseUrl}}/forms/{{formUuid}}/submissions/" } },
+        { "name": "Export CSV", "request": { "method": "GET", "header": [{ "key": "X-CSRFToken", "value": "{{csrfToken}}" }], "url": "{{baseUrl}}/forms/{{formUuid}}/export/?format=csv" } },
+        { "name": "Export Excel", "request": { "method": "GET", "header": [{ "key": "X-CSRFToken", "value": "{{csrfToken}}" }], "url": "{{baseUrl}}/forms/{{formUuid}}/export/?format=xlsx" } }
+      ]
+    },
+    {
+      "name": "Processes and reports",
+      "item": [
+        { "name": "List my processes", "request": { "method": "GET", "url": "{{baseUrl}}/processes/" } },
+        { "name": "Public process state", "request": { "method": "GET", "header": [{ "key": "X-Session-Key", "value": "{{sessionKey}}" }, { "key": "X-Private-Access-Token", "value": "{{privateAccessToken}}" }], "url": "{{baseUrl}}/public/processes/{{processUuid}}/state/" } },
+        { "name": "Form report", "request": { "method": "GET", "url": "{{baseUrl}}/forms/{{formUuid}}/report/" } },
+        { "name": "Process report", "request": { "method": "GET", "url": "{{baseUrl}}/processes/{{processUuid}}/report/" } },
+        { "name": "Text field report page", "request": { "method": "GET", "url": "{{baseUrl}}/fields/{{fieldId}}/report/?page=1&page_size=20" } },
+        { "name": "Stats overview", "request": { "method": "GET", "url": "{{baseUrl}}/stats/overview/" } },
+        { "name": "List report schedules", "request": { "method": "GET", "url": "{{baseUrl}}/report-schedules/" } }
+      ]
+    }
+  ]
+}

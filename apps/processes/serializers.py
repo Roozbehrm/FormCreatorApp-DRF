@@ -50,6 +50,11 @@ class ProcessSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
+        if self.instance is not None and "steps" in attrs and self.instance.runs.exists():
+            raise serializers.ValidationError(
+                {"steps": "پس از شروع اجرای فرایند، ساختار مراحل قابل تغییر نیست."}
+            )
+
         visibility = attrs.get("visibility", getattr(self.instance, "visibility", "public"))
         password = attrs.get("access_password")
         current_password = getattr(self.instance, "access_password", "")
